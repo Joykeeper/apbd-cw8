@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Tutorial8.Models.DTOs;
 using Tutorial8.Services;
 
 namespace Tutorial8.Controllers
@@ -19,17 +20,23 @@ namespace Tutorial8.Controllers
         public async Task<IActionResult> GetTrips()
         {
             var trips = await _tripsService.GetTrips();
+
+            foreach (var trip in trips)
+            {
+                trip.Countries = await _tripsService.GetTripCountries(trip.Id);
+            }
+            
             return Ok(trips);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTrip(int id)
-        {
-            // if( await DoesTripExist(id)){
-            //  return NotFound();
-            // }
-            // var trip = ... GetTrip(id);
-            return Ok();
-        }
+        // [HttpGet("{id}")]
+        // public async Task<IActionResult> GetTrip(int id)
+        // {
+        //     // if( await DoesTripExist(id)){
+        //     //  return NotFound();
+        //     // }
+        //     // var trip = ... GetTrip(id);
+        //     return Ok();
+        // }
     }
 }

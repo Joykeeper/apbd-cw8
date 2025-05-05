@@ -5,4 +5,5 @@ namespace Tutorial8.Services;
 public interface ITripsService
 {
     Task<List<TripDTO>> GetTrips();
+    Task<List<CountryDTO>> GetTripCountries(int tripId);
 }
