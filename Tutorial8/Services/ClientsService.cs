@@ -15,7 +15,8 @@ public class ClientsService : IClientsService
                          SELECT Trip.Name, Trip.Description, Trip.DateFrom, Trip.DateTo, Trip.MaxPeople, 
                                 CT.RegisteredAt, CT.PaymentDate
                          FROM Trip
-                         INNER JOIN Client_Trip AS CT ON CT.IdClient = @ClientId;
+                         INNER JOIN Client_Trip AS CT ON Trip.IdTrip=CT.IdTrip
+                         WHERE CT.IdClient = @ClientId;
                          """;
         
         using (SqlConnection conn = new SqlConnection(_connectionString))
@@ -37,8 +38,8 @@ public class ClientsService : IClientsService
                             DateTo = reader.GetDateTime(3),
                             MaxPeople = reader.GetInt32(4),
                         },
-                        RegisteredAt = reader.GetDateTime(5),
-                        PaymentDate = reader.GetDateTime(6),
+                        RegisteredAt = reader.GetInt32(5),
+                        PaymentDate = reader.GetInt32(6),
                     });
                 }
             }
@@ -49,18 +50,17 @@ public class ClientsService : IClientsService
 
     public async Task<int> CreateClient(ClientDTO client)
     {
-        int newClientId = await GetBiggestClientId() + 1;
-        
+        int newClientId = -1;
         string command = """
-                         INSERT INTO Client (IdClient, FirstName, LastName, Email, Telephone, Pesel)
-                         VALUES (@IdClient, @FirstName, @LastName, @Email, @Telephone, @Pesel);
+                         INSERT INTO Client (FirstName, LastName, Email, Telephone, Pesel)
+                         VALUES (@FirstName, @LastName, @Email, @Telephone, @Pesel)
+                         SELECT SCOPE_IDENTITY();
                          """;
         
         using (SqlConnection conn = new SqlConnection(_connectionString))
         using (SqlCommand cmd = new SqlCommand(command, conn))
         {
             await conn.OpenAsync();
-            cmd.Parameters.AddWithValue("IdClient", newClientId);
             cmd.Parameters.AddWithValue("FirstName", client.FirstName);
             cmd.Parameters.AddWithValue("LastName", client.LastName);
             cmd.Parameters.AddWithValue("Email", client.Email);
@@ -70,40 +70,15 @@ public class ClientsService : IClientsService
 
             try
             {
-                await cmd.ExecuteNonQueryAsync();
+                newClientId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                newClientId = -1;
             }
         }
 
         return newClientId;
-    }
-
-    public async Task<int> GetBiggestClientId()
-    {
-        int biggestClientId = -1;
-
-        string command = """
-                         SELECT max(idClient) FROM table
-                         """;
-        
-        using (SqlConnection conn = new SqlConnection(_connectionString))
-        using (SqlCommand cmd = new SqlCommand(command, conn))
-        {
-            await conn.OpenAsync();
-            
-            object result = await cmd.ExecuteScalarAsync();
-
-            if (result != DBNull.Value)
-            {
-                biggestClientId = Convert.ToInt32(result);
-            }
-        }
-
-        return biggestClientId;
     }
 
     public async Task<string> RegisterClientOnTrip(int clientId, int tripId)
@@ -119,11 +94,12 @@ public class ClientsService : IClientsService
         
         using (SqlConnection conn = new SqlConnection(_connectionString))
         using (SqlCommand cmd = new SqlCommand(command, conn))
-        {
+        {   
+            int dateTimeNow = int.Parse(DateTime.Now.ToString("yyyyMMdd"));
             await conn.OpenAsync();
             cmd.Parameters.AddWithValue("IdClient", clientId);
             cmd.Parameters.AddWithValue("IdTrip", tripId);
-            cmd.Parameters.AddWithValue("RegisteredAt", DateTime.Now);
+            cmd.Parameters.AddWithValue("RegisteredAt", dateTimeNow);
 
             try
             {
@@ -156,7 +132,7 @@ public class ClientsService : IClientsService
 
             object result = await cmd.ExecuteScalarAsync();
 
-            if (result != DBNull.Value)
+            if (result != null)
             {
                 currentNumberOfPeople = Convert.ToInt32(result);
             }
@@ -176,9 +152,9 @@ public class ClientsService : IClientsService
 
             object result = await cmd.ExecuteScalarAsync();
 
-            if (result != DBNull.Value)
+            if (result != null)
             {
-                currentNumberOfPeople = Convert.ToInt32(result);
+                maxPeopleForCurrentTrip = Convert.ToInt32(result);
             }
         }
             
@@ -201,8 +177,7 @@ public class ClientsService : IClientsService
             await conn.OpenAsync();
             cmd.Parameters.AddWithValue("ClientId", clientId);
             cmd.Parameters.AddWithValue("TripId", tripId);
-
-
+            
             try
             {
                 await cmd.ExecuteNonQueryAsync();
@@ -229,12 +204,12 @@ public class ClientsService : IClientsService
         using (SqlCommand cmd = new SqlCommand(command, conn))
         {
             await conn.OpenAsync();
-            cmd.Parameters.AddWithValue("IdClient", clientId);
+            cmd.Parameters.AddWithValue("ClientId", clientId);
 
 
             object result = await cmd.ExecuteScalarAsync();
 
-            if (result != DBNull.Value)
+            if (result != null)
             {
                 exists = true;
             }
@@ -260,7 +235,7 @@ public class ClientsService : IClientsService
 
             object result = await cmd.ExecuteScalarAsync();
 
-            if (result != DBNull.Value)
+            if (result != null)
             {
                 exists = true;
             }
@@ -287,7 +262,7 @@ public class ClientsService : IClientsService
 
             object result = await cmd.ExecuteScalarAsync();
 
-            if (result != DBNull.Value)
+            if (result != null)
             {
                 exists = true;
             }

@@ -11,7 +11,7 @@ public class TripsService : ITripsService
     {
         var trips = new List<TripDTO>();
 
-        string command = "SELECT IdTrip, Name FROM Trip";
+        string command = "SELECT IdTrip, Name, Description, DateFrom, DateTo, MaxPeople FROM Trip";
         
         using (SqlConnection conn = new SqlConnection(_connectionString))
         using (SqlCommand cmd = new SqlCommand(command, conn))
@@ -46,7 +46,8 @@ public class TripsService : ITripsService
 
         string command = """
                          SELECT Name FROM Country
-                         INNER JOIN Country_Trip AS CT ON CT.IdTrip = @TripId;
+                         INNER JOIN Country_Trip AS CT ON Country.IdCOuntry = CT.IdCountry
+                         WHERE CT.IdTrip = @TripId;
                          """;
         
         using (SqlConnection conn = new SqlConnection(_connectionString))
